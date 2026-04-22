@@ -261,7 +261,7 @@
   </div>
 
   <!-- Config panel -->
-  <div class="config-panel" id="config-panel">
+  <div class="config-panel" id="config-panel" style="display:none">
     <h2>Conectar a Google Sheets</h2>
     <div class="config-row">
       <div class="config-field">
@@ -438,9 +438,7 @@ const fmtH  = v => v.toFixed(1) + 'h';
 const esc   = s => String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 function getApiUrl() {
-  return document.getElementById('api-url').value.trim()
-      || localStorage.getItem(STORAGE_KEY)
-      || '';
+  return API_URL_FIJA
 }
 
 function guardarYCargar() {
