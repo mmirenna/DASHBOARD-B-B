@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Planta 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f14;
+    --bg2:       #13161e;
+    --bg3:       #1a1e28;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --text:      #e8eaf0;
+    --text2:     #7c8192;
+    --text3:     #4a4f60;
+    --accent:    #4f7cff;
+    --accent2:   #7b5ea7;
+    --green:     #34c98a;
+    --amber:     #f5a623;
+    --red:       #e05252;
+    --blue:      #4f7cff;
+    --radius:    10px;
+    --radius-lg: 14px;
+    --font:      'DM Sans', sans-serif;
+    --mono:      'DM Mono', monospace;
+  }
+
+  html { font-size: 14px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -0.5px;
+  }
+  .header h1 { font-size: 17px; font-weight: 500; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+  .status-label { font-size: 12px; color: var(--text2); }
+  .refresh-btn {
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text2); padding: 6px 12px; border-radius: 7px;
+    font-family: var(--font); font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .refresh-btn:hover { background: var(--bg2); color: var(--text); border-color: var(--accent); }
+
+  /* ── Section label ── */
+  .sec {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--text3);
+    margin: 28px 0 12px;
+  }
+
+  /* ── Metric cards ── */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .metric {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+    transition: border-color .15s;
+  }
+  .metric:hover { border-color: var(--border2); }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 500; letter-spacing: -1px; line-height: 1; }
+  .metric-value.green { color: var(--green); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.red   { color: var(--red); }
+  .metric-value.blue  { color: var(--blue); }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+  /* ── Grid layouts ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .full { grid-column: 1 / -1; }
+
+  /* ── Chart boxes ── */
+  .box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px 20px 16px;
+  }
+  .box-title {
+    font-size: 12px; font-weight: 500; color: var(--text2);
+    margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .box-title span { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  /* ── Tables ── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; padding: 8px 10px;
+    border-bottom: 1px solid var(--border2);
+    color: var(--text3); font-weight: 500;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    white-space: nowrap;
+  }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 8px;
+    border-radius: 20px; font-weight: 500; white-space: nowrap;
+  }
+  .badge-green { background: rgba(52,201,138,.15); color: var(--green); }
+  .badge-amber { background: rgba(245,166,35,.15); color: var(--amber); }
+  .badge-red   { background: rgba(224,82,82,.15);  color: var(--red); }
+  .badge-gray  { background: rgba(255,255,255,.06); color: var(--text2); }
+
+  /* ── Progress bars ── */
+  .bar-track { background: rgba(255,255,255,.07); border-radius: 3px; height: 5px; min-width: 60px; }
+  .bar-fill  { height: 5px; border-radius: 3px; transition: width .4s; }
+
+  /* ── Legends ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Loading state ── */
+  .loading-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+    z-index: 100; transition: opacity .4s;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text2); }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: rgba(224,82,82,.1); border: 1px solid rgba(224,82,82,.3);
+    border-radius: var(--radius); padding: 14px 18px;
+    color: var(--red); font-size: 13px; margin-bottom: 20px; display: none;
+  }
+  .error-banner.show { display: block; }
+
+  /* ── Config panel ── */
+  .config-panel {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 24px;
+  }
+  .config-panel h2 { font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+  .config-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .config-field { flex: 1; min-width: 220px; }
+  .config-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+  .config-field input {
+    width: 100%; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 7px; padding: 8px 12px; color: var(--text);
+    font-family: var(--mono); font-size: 11px; outline: none;
+    transition: border-color .15s;
+  }
+  .config-field input:focus { border-color: var(--accent); }
+  .config-btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 9px 20px; border-radius: 7px; font-family: var(--font);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: opacity .15s; white-space: nowrap;
+  }
+  .config-btn:hover { opacity: .85; }
+  .config-note { font-size: 11px; color: var(--text3); margin-top: 8px; }
+  .config-note a { color: var(--accent); text-decoration: none; }
+  .config-note a:hover { text-decoration: underline; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+  .tab {
+    padding: 7px 16px; border-radius: 7px; font-size: 13px;
+    cursor: pointer; border: 1px solid transparent;
+    color: var(--text2); transition: all .15s; background: none;
+    font-family: var(--font);
+  }
+  .tab.active {
+    background: var(--bg3); border-color: var(--border2);
+    color: var(--text);
+  }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Footer ── */
+  .footer {
+    border-top: 1px solid var(--border); margin-top: 40px;
+    padding-top: 16px; font-size: 11px; color: var(--text3);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  #last-updated { font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando datos desde Google Sheets…</div>
+</div>
+
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">P</div>
+      <div>
+        <div class="header h1" style="font-size:17px;font-weight:500">Dashboard de Planta 2026</div>
+        <div class="header-sub">OTs · Márgenes · Eficiencia operativa</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="conn-dot" style="background:var(--text3);box-shadow:none"></div>
+      <span class="status-label" id="conn-label">Sin conectar</span>
+      <button class="refresh-btn" onclick="cargarDatos()">↻ Actualizar</button>
+    </div>
+  </div>
+
+  <!-- Config panel -->
+  <div class="config-panel" id="config-panel">
+    <h2>Conectar a Google Sheets</h2>
+    <div class="config-row">
+      <div class="config-field">
+        <label>URL del Apps Script (endpoint JSON)</label>
+        <input type="text" id="api-url" placeholder="https://script.google.com/macros/s/TU_ID/exec"
+               value="">
+      </div>
+      <button class="config-btn" onclick="guardarYCargar()">Conectar y cargar</button>
+    </div>
+    <div class="config-note">
+      La URL se guarda en tu navegador. Necesitás publicar el Apps Script como "aplicación web" con acceso "cualquier persona".
+      <a href="#" onclick="mostrarInstrucciones()">Ver instrucciones</a>
+    </div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner" id="error-banner"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('resumen')">Resumen ejecutivo</button>
+    <button class="tab" onclick="switchTab('eficiencia')">Eficiencia operativa</button>
+    <button class="tab" onclick="switchTab('detalle')">Detalle OTs</button>
+  </div>
+
+  <!-- TAB: Resumen ejecutivo -->
+  <div class="tab-panel active" id="tab-resumen">
+
+    <div class="sec">Resumen ejecutivo — Abril 2026</div>
+    <div class="metrics" id="kpi-resumen">
+      <div class="metric"><div class="metric-label">OTs activas</div><div class="metric-value blue" id="kpi-ots">—</div><div class="metric-sub" id="kpi-ots-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Facturación total</div><div class="metric-value green" id="kpi-facturacion">—</div><div class="metric-sub">Sin IVA</div></div>
+      <div class="metric"><div class="metric-label">Margen bruto promedio</div><div class="metric-value green" id="kpi-margen">—</div><div class="metric-sub" id="kpi-margen-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Plazo promedio</div><div class="metric-value amber" id="kpi-plazo">—</div><div class="metric-sub" id="kpi-plazo-sub">—</div></div>
+      <div class="metric"><div class="metric-label">OTs vencidas</div><div class="metric-value" id="kpi-vencidas" style="color:var(--text2)">—</div><div class="metric-sub" id="kpi-vencidas-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Costo total</div><div class="metric-value" id="kpi-costo" style="color:var(--text2)">—</div><div class="metric-sub">MO + materiales, sin IVA</div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div class="box">
+        <div class="box-title">Horas de planta por área <span>OTs activas</span></div>
+        <div style="position:relative;width:100%;height:220px">
+          <canvas id="chart-horas" role="img" aria-label="Horas de planta por área"></canvas>
+        </div>
+      </div>
+      <div class="box">
+        <div class="box-title">Margen por OT (%) <span>Sin IVA</span></div>
+        <div style="position:relative;width:100%;height:220px">
+          <canvas id="chart-margen" role="img" aria-label="Margen por OT"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="box full" style="margin-top:12px">
+      <div class="box-title">Horas planificadas por OT y área <span>Planificación de fábrica</span></div>
+      <div style="position:relative;width:100%;height:180px">
+        <canvas id="chart-plan" role="img" aria-label="Horas planificadas por área y OT"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB: Eficiencia operativa -->
+  <div class="tab-panel" id="tab-eficiencia">
+
+    <div class="sec">Eficiencia operativa — comparativa de horas</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Horas presupuestadas</div><div class="metric-value blue" id="eff-pres">—</div><div class="metric-sub">Según cotización aprobada</div></div>
+      <div class="metric"><div class="metric-label">Horas planificadas</div><div class="metric-value amber" id="eff-plan">—</div><div class="metric-sub" id="eff-plan-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Horas reales ejecutadas</div><div class="metric-value green" id="eff-real">—</div><div class="metric-sub" id="eff-real-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Ejecución vs presupuesto</div><div class="metric-value amber" id="eff-pct">—</div><div class="metric-sub" id="eff-pct-sub">—</div></div>
+      <div class="metric"><div class="metric-label">Cobertura planificación</div><div class="metric-value" id="eff-cob" style="color:var(--text2)">—</div><div class="metric-sub">OTs con horas planificadas</div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div class="box full">
+        <div class="box-title">Presupuestadas vs planificadas vs reales</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#4f7cff"></div>Presupuestadas</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7b5ea7"></div>Planificadas</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#34c98a"></div>Reales</div>
+        </div>
+        <div style="position:relative;width:100%;height:240px">
+          <canvas id="chart-comp" role="img" aria-label="Comparativa horas por OT"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div class="box">
+        <div class="box-title">Avance de ejecución por OT (%)</div>
+        <div style="position:relative;width:100%;height:200px">
+          <canvas id="chart-avance" role="img" aria-label="Avance ejecución vs presupuesto"></canvas>
+        </div>
+      </div>
+      <div class="box">
+        <div class="box-title">Horas reales por área</div>
+        <div style="position:relative;width:100%;height:200px">
+          <canvas id="chart-area-real" role="img" aria-label="Horas reales por área de producción"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="box full" style="margin-top:12px">
+      <div class="box-title">Detalle de eficiencia por proyecto</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Proyecto</th>
+              <th style="text-align:right">Presup. (h)</th>
+              <th style="text-align:right">Planif. (h)</th>
+              <th style="text-align:right">Reales (h)</th>
+              <th style="text-align:right">Ejec. %</th>
+              <th>Progreso</th>
+              <th style="text-align:center">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-eficiencia"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB: Detalle OTs -->
+  <div class="tab-panel" id="tab-detalle">
+
+    <div class="sec">Detalle completo de OTs</div>
+    <div class="box full">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>OT / Campaña</th>
+              <th>Cliente</th>
+              <th style="text-align:center">Comercial</th>
+              <th style="text-align:right">Precio</th>
+              <th style="text-align:right">Costo</th>
+              <th style="text-align:right">Margen</th>
+              <th style="text-align:center">Días entrega</th>
+              <th style="text-align:center">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-ots"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Dashboard de Planta 2026 — datos desde Google Sheets vía Apps Script</span>
+    <span id="last-updated">—</span>
+  </div>
+
+</div>
+
+<script>
+/* ────────────────────────────────────────────
+   CONFIGURACIÓN
+   Reemplazá API_URL con la URL de tu Apps Script
+   ──────────────────────────────────────────── */
+const STORAGE_KEY = 'dashboard_planta_api_url';
+
+let charts = {};
+
+/* ── Utilidades ── */
+const fmtM  = v => '$' + (v / 1000000).toFixed(2) + 'M';
+const fmtPct = v => v.toFixed(1) + '%';
+const fmtH  = v => v.toFixed(1) + 'h';
+const esc   = s => String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function getApiUrl() {
+  return document.getElementById('api-url').value.trim()
+      || localStorage.getItem(STORAGE_KEY)
+      || '';
+}
+
+function guardarYCargar() {
+  const url = document.getElementById('api-url').value.trim();
+  if (!url) { mostrarError('Ingresá la URL del Apps Script antes de conectar.'); return; }
+  localStorage.setItem(STORAGE_KEY, url);
+  cargarDatos();
+}
+
+function setStatus(ok) {
+  const dot   = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  if (ok) {
+    dot.style.background   = 'var(--green)';
+    dot.style.boxShadow    = '0 0 8px var(--green)';
+    label.textContent      = 'Conectado';
+  } else {
+    dot.style.background   = 'var(--red)';
+    dot.style.boxShadow    = '0 0 8px var(--red)';
+    label.textContent      = 'Error de conexión';
+  }
+}
+
+function mostrarError(msg) {
+  const b = document.getElementById('error-banner');
+  b.textContent = '⚠ ' + msg;
+  b.classList.add('show');
+}
+function ocultarError() { document.getElementById('error-banner').classList.remove('show'); }
+
+/* ── Instrucciones ── */
+function mostrarInstrucciones() {
+  alert(`PASO A PASO — Apps Script:
+
+1. Abrí tu Google Sheets
+2. Menú: Extensiones → Apps Script
+3. Pegá el código del archivo apps_script.js (incluido junto a este HTML)
+4. Reemplazá TU_SHEET_ID con el ID de tu Sheets
+   (está en la URL: spreadsheets/d/ESTE_VALOR/edit)
+5. Clic en "Implementar" → "Nueva implementación"
+6. Tipo: Aplicación web
+   Ejecutar como: Yo
+   Acceso: Cualquier persona
+7. Copiá la URL generada y pegala en el campo de arriba`);
+}
+
+/* ── Tabs ── */
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['resumen','eficiencia','detalle'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + id);
+  });
+}
+
+/* ── Destruir chart previo ── */
+function newChart(id, config) {
+  if (charts[id]) { charts[id].destroy(); }
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+/* ── DATOS DEMO (usados cuando no hay API configurada) ── */
+function datosDemo() {
+  return {
+    ots: [
+      { 'Nombre proyecto':'OT4155_Samsung_Naldo MDQ','Cliente':'Samsung','Comercial':'EL','Precio (Sin IVA)':15414000,'Costo Total':7621065,'Dias a la entrega':14,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':43.7,'Horas de Herreria':2.85,'Horas de Pintura':0,'Horas de Grafica':33.25,'Horas de Electricidad':2.85,'Horas de Montaje':66.5,'Horas de Planta (Senior)':43,'Horas de Planta (Junior)':149.15 },
+      { 'Nombre proyecto':'OT4173_Primma_Acompañamiento EZE Abril 2026','Cliente':'Primma','Comercial':'LGS','Precio (Sin IVA)':384000,'Costo Total':230100,'Dias a la entrega':-2,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0,'Horas de Montaje':5,'Horas de Planta (Senior)':1,'Horas de Planta (Junior)':5 },
+      { 'Nombre proyecto':'OT4095_Pilar Somovilla_Departamento Figueroa Alcorta','Cliente':'Pilar Somovilla','Comercial':'LGS','Precio (Sin IVA)':35479000,'Costo Total':21420552,'Dias a la entrega':28,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':364.26,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':45.13,'Horas de Montaje':133,'Horas de Planta (Senior)':39,'Horas de Planta (Junior)':542.38 },
+      { 'Nombre proyecto':'OT4138_Luxottica Italia SRL_Espejo Oakley Avolta EZE L.22','Cliente':'Luxottica Italia SRL','Comercial':'ID','Precio (Sin IVA)':641000,'Costo Total':324077,'Dias a la entrega':6,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':0.48,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0,'Horas de Montaje':4.75,'Horas de Planta (Senior)':3.1,'Horas de Planta (Junior)':5.23 },
+      { 'Nombre proyecto':"OT4179_Victoria´s Secret_2026 VS TR Signature Summer FST Release",'Cliente':"Victoria´s Secret",'Comercial':'LGS','Precio (Sin IVA)':35588000,'Costo Total':5515750,'Dias a la entrega':7,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':142.5,'Horas de Electricidad':0,'Horas de Montaje':0,'Horas de Planta (Senior)':6,'Horas de Planta (Junior)':142.5 },
+      { 'Nombre proyecto':'OT4177_Luxottica Italia SRL_Visuales London Supply Iguazú Abril 2026','Cliente':'Luxottica Italia SRL','Comercial':'ID','Precio (Sin IVA)':648000,'Costo Total':369932,'Dias a la entrega':7,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':0.48,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':4.75,'Horas de Electricidad':0,'Horas de Montaje':4.75,'Horas de Planta (Senior)':2.05,'Horas de Planta (Junior)':9.98 },
+      { 'Nombre proyecto':'OT4180_Pilar Somovilla_Armarios Casa Muñiz','Cliente':'Pilar Somovilla','Comercial':'LGS','Precio (Sin IVA)':13724000,'Costo Total':8371139,'Dias a la entrega':28,'Estado de proyecto aprobado':'En curso','Horas de Carpinteria':114,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0,'Horas de Montaje':76,'Horas de Planta (Senior)':17,'Horas de Planta (Junior)':190 },
+      { 'Nombre proyecto':'OT4182_Luxottica Italia SRL_HPP MK Lentes Avolta EZE Mayo 2026','Cliente':'Luxottica Italia SRL','Comercial':'ID','Precio (Sin IVA)':1023000,'Costo Total':584200,'Dias a la entrega':0,'Estado de proyecto aprobado':'','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0,'Horas de Montaje':19,'Horas de Planta (Senior)':1,'Horas de Planta (Junior)':19 },
+    ],
+    planificacion: [
+      { 'Nombre proyecto':'OT4155_Samsung_Naldo MDQ','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':'OT4173_Primma_Acompañamiento EZE Abril 2026','Horas de Carpinteria':0,'Horas de Herreria':6.375,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':'OT4095_Pilar Somovilla_Departamento Figueroa Alcorta','Horas de Carpinteria':42.5,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':'OT4138_Luxottica Italia SRL_Espejo Oakley Avolta EZE L.22','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':"OT4179_Victoria´s Secret_2026 VS TR Signature Summer FST Release",'Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':17,'Horas de Grafica':27.625,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':'OT4177_Luxottica Italia SRL_Visuales London Supply Iguazú Abril 2026','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+      { 'Nombre proyecto':'OT4180_Pilar Somovilla_Armarios Casa Muñiz','Horas de Carpinteria':0,'Horas de Herreria':0,'Horas de Pintura':0,'Horas de Grafica':0,'Horas de Electricidad':0 },
+    ],
+    historico: [
+      { OT_num:'OT4095', Tarea:'Carpintería', 'Tiempo (hs)':153 },
+      { OT_num:'OT4095', Tarea:'Carpinteria', 'Tiempo (hs)':86.5 },
+      { OT_num:'OT4095', Tarea:'Instalacion', 'Tiempo (hs)':156.5 },
+      { OT_num:'OT4095', Tarea:'Herreria',    'Tiempo (hs)':11.5 },
+      { OT_num:'OT4095', Tarea:'Pintura',     'Tiempo (hs)':8.5 },
+      { OT_num:'OT4095', Tarea:'Embalaje',    'Tiempo (hs)':5 },
+    ]
+  };
+}
+
+/* ── CARGA DE DATOS ── */
+async function cargarDatos() {
+  ocultarError();
+  document.getElementById('loading').classList.remove('hidden');
+
+  const url = getApiUrl();
+
+  try {
+    let data;
+    if (!url) {
+      // Usar datos demo
+      await new Promise(r => setTimeout(r, 700));
+      data = datosDemo();
+      mostrarError('Usando datos de demostración. Ingresá la URL de tu Apps Script para conectar con Google Sheets.');
+    } else {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      data = await resp.json();
+      setStatus(true);
+    }
+
+    renderizarTodo(data);
+    document.getElementById('last-updated').textContent =
+      'Actualizado: ' + new Date().toLocaleString('es-AR');
+
+  } catch (err) {
+    setStatus(false);
+    mostrarError('No se pudo conectar con el Apps Script. Verificá la URL y que el script tenga acceso público. (' + err.message + ')');
+    // Render demo anyway
+    renderizarTodo(datosDemo());
+  } finally {
+    document.getElementById('loading').classList.add('hidden');
+  }
+}
+
+/* ── RENDER PRINCIPAL ── */
+function renderizarTodo(data) {
+  const { ots, planificacion, historico = [] } = data;
+
+  // Normalizar números
+  ots.forEach(o => {
+    ['Precio (Sin IVA)','Costo Total','Dias a la entrega'].forEach(k => {
+      if (o[k] !== undefined) o[k] = +o[k] || 0;
+    });
+    const hCols = ['Horas de Carpinteria','Horas de Herreria','Horas de Pintura',
+                   'Horas de Grafica','Horas de Electricidad','Horas de Montaje',
+                   'Horas de Planta (Senior)','Horas de Planta (Junior)'];
+    hCols.forEach(k => { if(o[k]!==undefined) o[k] = +o[k]||0; });
+  });
+
+  // ── KPIs resumen ──
+  const total_precio  = ots.reduce((a,o) => a + (o['Precio (Sin IVA)']||0), 0);
+  const total_costo   = ots.reduce((a,o) => a + (o['Costo Total']||0), 0);
+  const margenes      = ots.map(o => o['Precio (Sin IVA)'] > 0
+    ? (o['Precio (Sin IVA)'] - o['Costo Total']) / o['Precio (Sin IVA)'] * 100 : 0);
+  const marg_avg      = margenes.reduce((a,b)=>a+b,0) / margenes.length;
+  const marg_max      = Math.max(...margenes);
+  const marg_max_ot   = ots[margenes.indexOf(marg_max)];
+  const plazos        = ots.map(o=>o['Dias a la entrega']||0);
+  const plazo_avg     = plazos.reduce((a,b)=>a+b,0)/plazos.length;
+  const vencidas      = ots.filter(o => (o['Dias a la entrega']||0) < 0);
+  const en_curso      = ots.filter(o => o['Estado de proyecto aprobado'] === 'En curso');
+
+  document.getElementById('kpi-ots').textContent         = ots.length;
+  document.getElementById('kpi-ots-sub').textContent     = en_curso.length + ' en curso';
+  document.getElementById('kpi-facturacion').textContent = fmtM(total_precio);
+  document.getElementById('kpi-margen').textContent      = fmtPct(marg_avg);
+  const nombre_max = marg_max_ot ? marg_max_ot['Cliente'] : '';
+  document.getElementById('kpi-margen-sub').textContent  = 'Mejor: ' + nombre_max + ' ' + fmtPct(marg_max);
+  document.getElementById('kpi-plazo').textContent       = Math.round(plazo_avg) + ' días';
+  document.getElementById('kpi-plazo-sub').textContent   = 'Rango: ' + Math.min(...plazos) + ' a ' + Math.max(...plazos) + ' días';
+  const kv = document.getElementById('kpi-vencidas');
+  kv.textContent = vencidas.length;
+  kv.className   = 'metric-value ' + (vencidas.length > 0 ? 'red' : 'green');
+  document.getElementById('kpi-vencidas-sub').textContent =
+    vencidas.length > 0 ? vencidas.map(o => o['Cliente']).join(', ') : 'Todas a tiempo';
+  document.getElementById('kpi-costo').textContent       = fmtM(total_costo);
+
+  // ── Chart: horas por área ──
+  const areas = {
+    'Jr planta': ots.reduce((a,o)=>a+(o['Horas de Planta (Junior)']||0),0),
+    'Carpintería': ots.reduce((a,o)=>a+(o['Horas de Carpinteria']||0),0),
+    'Montaje':    ots.reduce((a,o)=>a+(o['Horas de Montaje']||0),0),
+    'Gráfica':    ots.reduce((a,o)=>a+(o['Horas de Grafica']||0),0),
+    'Sr planta':  ots.reduce((a,o)=>a+(o['Horas de Planta (Senior)']||0),0),
+    'Electricidad':ots.reduce((a,o)=>a+(o['Horas de Electricidad']||0),0),
+    'Herrería':   ots.reduce((a,o)=>a+(o['Horas de Herreria']||0),0),
+    'Pintura':    ots.reduce((a,o)=>a+(o['Horas de Pintura']||0),0),
+  };
+  const areaColors = ['#4f7cff','#34c98a','#0F6E56','#7b5ea7','#4f7cff','#f5a623','#73726c','#993C1D'];
+  newChart('chart-horas', {
+    type: 'bar',
+    data: {
+      labels: Object.keys(areas),
+      datasets: [{ data: Object.values(areas).map(v=>+v.toFixed(1)),
+        backgroundColor: areaColors, borderRadius: 4 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'h' } },
+        y:{ grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:11} } }
+      }
+    }
+  });
+
+  // ── Chart: margen por OT ──
+  const shortName = o => {
+    const parts = (o['Nombre proyecto']||'').split('_');
+    return (parts[1]||'').substring(0,14);
+  };
+  const colores_margen = margenes.map(m =>
+    m > 70 ? '#34c98a' : m > 48 ? '#4f7cff' : m > 40 ? '#7b5ea7' : '#f5a623');
+  newChart('chart-margen', {
+    type:'bar',
+    data:{
+      labels: ots.map(shortName),
+      datasets:[{ data: margenes.map(m=>+m.toFixed(1)),
+        backgroundColor: colores_margen, borderRadius:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:10}, maxRotation:35, autoSkip:false } },
+        y:{ min:0, max:100, grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'%' } }
+      }
+    }
+  });
+
+  // ── Chart: planificación ──
+  const planMap = {};
+  planificacion.forEach(p => {
+    const num = (p['Nombre proyecto']||'').match(/OT\d+/);
+    if (num) planMap[num[0]] = p;
+  });
+  const planLabels = ots.map(o => shortName(o));
+  const hPlanCarp  = ots.map(o => { const n=(o['Nombre proyecto']||'').match(/OT\d+/); return n&&planMap[n[0]]?+(planMap[n[0]]['Horas de Carpinteria']||0):0; });
+  const hPlanHerr  = ots.map(o => { const n=(o['Nombre proyecto']||'').match(/OT\d+/); return n&&planMap[n[0]]?+(planMap[n[0]]['Horas de Herreria']||0):0; });
+  const hPlanPint  = ots.map(o => { const n=(o['Nombre proyecto']||'').match(/OT\d+/); return n&&planMap[n[0]]?+(planMap[n[0]]['Horas de Pintura']||0):0; });
+  const hPlanGraf  = ots.map(o => { const n=(o['Nombre proyecto']||'').match(/OT\d+/); return n&&planMap[n[0]]?+(planMap[n[0]]['Horas de Grafica']||0):0; });
+  newChart('chart-plan', {
+    type:'bar',
+    data:{
+      labels: planLabels,
+      datasets:[
+        { label:'Carpintería', data:hPlanCarp, backgroundColor:'#34c98a', borderRadius:3 },
+        { label:'Herrería',    data:hPlanHerr, backgroundColor:'#4f7cff', borderRadius:3 },
+        { label:'Pintura',     data:hPlanPint, backgroundColor:'#993C1D', borderRadius:3 },
+        { label:'Gráfica',     data:hPlanGraf, backgroundColor:'#7b5ea7', borderRadius:3 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ stacked:true, grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:11} } },
+        y:{ stacked:true, grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'h' } }
+      }
+    }
+  });
+
+  // ── Eficiencia ──
+  const hColsOt  = ['Horas de Carpinteria','Horas de Herreria','Horas de Pintura',
+                    'Horas de Grafica','Horas de Electricidad','Horas de Montaje',
+                    'Horas de Planta (Senior)','Horas de Planta (Junior)'];
+  const hColsPlan = ['Horas de Carpinteria','Horas de Herreria','Horas de Pintura',
+                     'Horas de Grafica','Horas de Electricidad'];
+
+  // Reales por OT desde historico
+  const realPorOt = {};
+  historico.forEach(r => {
+    const ot = r['OT_num'] || (r['Orden de trabajo']||'').match(/OT\d+/)?.[0];
+    if (ot) realPorOt[ot] = (realPorOt[ot]||0) + (+r['Tiempo (hs)']||0);
+  });
+
+  const effData = ots.map(o => {
+    const num = (o['Nombre proyecto']||'').match(/OT\d+/)?.[0];
+    const pres = hColsOt.reduce((a,k)=>a+(+o[k]||0),0);
+    const pMap = num && planMap[num] ? planMap[num] : {};
+    const plan_ = hColsPlan.reduce((a,k)=>a+(+pMap[k]||0),0);
+    const real  = num ? (realPorOt[num]||0) : 0;
+    return { nombre: shortName(o), fullname: o['Nombre proyecto']||'', pres, plan:plan_, real };
+  });
+
+  const totPres = effData.reduce((a,d)=>a+d.pres,0);
+  const totPlan = effData.reduce((a,d)=>a+d.plan,0);
+  const totReal = effData.reduce((a,d)=>a+d.real,0);
+  const pctEjec = totPres > 0 ? totReal/totPres*100 : 0;
+  const cobPlan = effData.filter(d=>d.plan>0).length;
+
+  document.getElementById('eff-pres').textContent     = totPres.toFixed(0)+'h';
+  document.getElementById('eff-plan').textContent     = totPlan.toFixed(1)+'h';
+  document.getElementById('eff-plan-sub').textContent = (totPres>0?(totPlan/totPres*100).toFixed(1)+'%':'-') + ' del presupuesto cargado';
+  document.getElementById('eff-real').textContent     = totReal.toFixed(1)+'h';
+  document.getElementById('eff-real-sub').textContent = totReal > 0 ? effData.filter(d=>d.real>0).map(d=>d.nombre).join(', ') : 'Sin registros aún';
+  document.getElementById('eff-pct').textContent      = fmtPct(pctEjec);
+  document.getElementById('eff-pct-sub').textContent  = totReal.toFixed(1)+'h de '+totPres.toFixed(0)+'h totales';
+  document.getElementById('eff-cob').textContent      = cobPlan + ' / ' + ots.length;
+
+  // Chart comparativa
+  newChart('chart-comp', {
+    type:'bar',
+    data:{
+      labels: effData.map(d=>d.nombre),
+      datasets:[
+        { label:'Presupuestadas', data:effData.map(d=>+d.pres.toFixed(1)), backgroundColor:'#4f7cff', borderRadius:3 },
+        { label:'Planificadas',   data:effData.map(d=>+d.plan.toFixed(1)), backgroundColor:'#7b5ea7', borderRadius:3 },
+        { label:'Reales',         data:effData.map(d=>+d.real.toFixed(1)), backgroundColor:'#34c98a', borderRadius:3 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:10}, maxRotation:30, autoSkip:false } },
+        y:{ grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'h' } }
+      }
+    }
+  });
+
+  // Chart avance
+  const avancePct = effData.map(d => d.pres>0 ? +(d.real/d.pres*100).toFixed(1) : 0);
+  newChart('chart-avance', {
+    type:'bar',
+    data:{
+      labels: effData.map(d=>d.nombre),
+      datasets:[{ data:avancePct,
+        backgroundColor: avancePct.map(p => p===0?'rgba(255,255,255,.1)': p<50?'#4f7cff':'#34c98a'),
+        borderRadius:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ min:0, max:100, grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'%' } },
+        y:{ grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:11} } }
+      }
+    }
+  });
+
+  // Chart áreas reales
+  const areaReal = {};
+  historico.forEach(r => {
+    const t = r['Tarea']||'Otro';
+    areaReal[t] = (areaReal[t]||0) + (+r['Tiempo (hs)']||0);
+  });
+  const arSorted = Object.entries(areaReal).sort((a,b)=>b[1]-a[1]);
+  newChart('chart-area-real', {
+    type:'bar',
+    data:{
+      labels: arSorted.map(x=>x[0]),
+      datasets:[{ data:arSorted.map(x=>+x[1].toFixed(1)),
+        backgroundColor:'#34c98a', borderRadius:4 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#7c8192', font:{size:11}, callback:v=>v+'h' } },
+        y:{ grid:{ display:false }, ticks:{ color:'#7c8192', font:{size:11} } }
+      }
+    }
+  });
+
+  // Tabla eficiencia
+  const te = document.getElementById('tbl-eficiencia');
+  te.innerHTML = effData.map(d => {
+    const pct = d.pres>0 ? d.real/d.pres*100 : 0;
+    const barW = Math.min(pct,100).toFixed(1);
+    const barColor = pct===0?'rgba(255,255,255,.15)':pct<50?'#4f7cff':'#34c98a';
+    let badge, cls;
+    if (d.real===0 && d.plan===0) { badge='Sin datos'; cls='badge-gray'; }
+    else if (d.real===0)          { badge='Sin reales'; cls='badge-amber'; }
+    else                          { badge='En curso'; cls='badge-green'; }
+    return `<tr>
+      <td title="${esc(d.fullname)}" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nombre)}</td>
+      <td style="text-align:right;font-family:var(--mono)">${d.pres.toFixed(1)}</td>
+      <td style="text-align:right;font-family:var(--mono)">${d.plan>0?d.plan.toFixed(1):'—'}</td>
+      <td style="text-align:right;font-family:var(--mono);font-weight:500;color:${d.real>0?'#34c98a':'#7c8192'}">${d.real>0?d.real.toFixed(1):'—'}</td>
+      <td style="text-align:right;color:${pct>0?'#4f7cff':'#7c8192'}">${pct>0?pct.toFixed(1)+'%':'—'}</td>
+      <td style="min-width:80px"><div class="bar-track"><div class="bar-fill" style="width:${barW}%;background:${barColor}"></div></div></td>
+      <td style="text-align:center"><span class="badge ${cls}">${badge}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Tabla OTs detalle
+  const to = document.getElementById('tbl-ots');
+  to.innerHTML = ots.map((o,i) => {
+    const precio = o['Precio (Sin IVA)']||0;
+    const costo  = o['Costo Total']||0;
+    const mg     = precio>0?(precio-costo)/precio*100:0;
+    const dias   = o['Dias a la entrega']||0;
+    let badge, cls;
+    if (dias < 0)                          { badge='Vencida'; cls='badge-red'; }
+    else if (!o['Estado de proyecto aprobado']) { badge='Pendiente'; cls='badge-amber'; }
+    else                                   { badge='En curso'; cls='badge-green'; }
+    const nombre = (o['Nombre proyecto']||'').split('_').slice(1).join(' — ');
+    return `<tr>
+      <td title="${esc(o['Nombre proyecto']||'')}" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(nombre)}</td>
+      <td>${esc(o['Cliente']||'')}</td>
+      <td style="text-align:center;font-family:var(--mono)">${esc(o['Comercial']||'')}</td>
+      <td style="text-align:right;font-family:var(--mono)">${fmtM(precio)}</td>
+      <td style="text-align:right;font-family:var(--mono)">${fmtM(costo)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-weight:500;color:${mg>60?'#34c98a':mg>45?'#4f7cff':'#f5a623'}">${fmtPct(mg)}</td>
+      <td style="text-align:center;color:${dias<0?'var(--red)':''}">${dias}d</td>
+      <td style="text-align:center"><span class="badge ${cls}">${badge}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) document.getElementById('api-url').value = saved;
+  cargarDatos();
+});
+</script>
+</body>
+</html>
