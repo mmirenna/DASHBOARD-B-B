@@ -327,7 +327,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbx9X9fF2HvjFN3jMr73Q6Tw
 /* ── Datos de operarios y tareas ── */
 const TAREAS_GENERALES = ['Mantenimiento', 'Embalaje', 'Limpieza', 'Reunion'];
 
-const OPERARIOS = {};
+// Se carga dinámicamente desde la hoja "Operarios y tareas"
+let OPERARIOS = {};
 
 const MAX_TAREAS = 5;
 const MIN_HORAS  = 9.5;
@@ -342,28 +343,31 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('header-date').textContent =
     hoy.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
 
-  
-
-  // Cargar OTs desde Apps Script
+  // Operarios y OTs se cargan juntos desde el Sheets
   cargarOTs();
 });
 
-/* ── Cargar OTs en curso ── */
+/* ── Cargar OTs y operarios desde el Sheets ── */
 async function cargarOTs() {
-  mostrarLoading('Cargando proyectos en curso…');
+  mostrarLoading('Cargando datos desde Google Sheets…');
   try {
     const resp = await fetch(API_URL);
     const data = await resp.json();
-    const ots  = (data.ots || []).filter(o =>
+
+    // OTs en curso
+    const ots = (data.ots || []).filter(o =>
       o['Estado de proyecto aprobado'] === 'En curso'
     );
     otsCargadas = ots.map(o => o['Nombre proyecto'] || '').filter(Boolean);
-    
+
+    // Operarios y tareas desde la hoja
     if (data.operarios && Object.keys(data.operarios).length > 0) {
       OPERARIOS = data.operarios;
     } else {
-      mostrarWarn('No se encontró la hoja...');
+      mostrarWarn('No se encontró la hoja "Operarios y tareas" en el Sheets. Verificá que exista con columnas A (Operario) y B (Tarea posible).');
     }
+
+    // Poblar select de operarios
     const sel = document.getElementById('sel-operario');
     sel.innerHTML = '<option value="">— Seleccioná tu nombre —</option>';
     Object.keys(OPERARIOS).sort().forEach(nombre => {
@@ -372,10 +376,10 @@ async function cargarOTs() {
       opt.textContent = nombre;
       sel.appendChild(opt);
     });
+
   } catch (e) {
-    // Si falla la carga, usamos lista vacía y mostramos aviso
     otsCargadas = [];
-    mostrarWarn('No se pudieron cargar las OTs en curso. Verificá la conexión. Podés igualmente cargar horas usando "ByB Gral".');
+    mostrarWarn('No se pudieron cargar los datos. Verificá la conexión y que el Apps Script esté publicado.');
   }
   ocultarLoading();
 
