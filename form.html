@@ -327,21 +327,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbx9X9fF2HvjFN3jMr73Q6Tw
 /* ── Datos de operarios y tareas ── */
 const TAREAS_GENERALES = ['Mantenimiento', 'Embalaje', 'Limpieza', 'Reunion'];
 
-const OPERARIOS = {
-  'Daniel Hector Altamirano': ['Carpintería','Logistica','Herrajes','Vidrios','Instalacion','Relevamiento'],
-  'Hugo Viollaz':             ['Carpintería','Logistica','Herrajes','Vidrios','Instalacion','Relevamiento'],
-  'Miguel Coria':             ['Carpintería','Herrajes','Vidrios','Instalacion'],
-  'Roberto Cuenca':           ['Carpintería','Herrajes','Vidrios','Instalacion'],
-  'Alejandro Bustos':         ['Grafica','Instalacion','Logistica','Relevamiento','Plasticos','Vidrios'],
-  'Jorge Cardozo':            ['Pintura'],
-  'Ezequiel Gimenez':         ['Pintura','Instalacion'],
-  'German Del Rabal':         ['Pintura','Instalacion','Grafica'],
-  'Oscar Satto':              ['Herreria','Instalacion','Logistica','Relevamiento','Grafica'],
-  'Augusto Jimenez':          ['Herreria','Instalacion','Pintura'],
-  'Jonathan Oviedo':          ['Electricidad','Router','Instalacion','Herreria','Pintura','Grafica'],
-  'Pedro Altamirano':         ['Carpintería','Herrajes','Vidrios'],
-  'Maximiliano':              ['Carpintería'],
-};
+const OPERARIOS = {};
 
 const MAX_TAREAS = 5;
 const MIN_HORAS  = 9.5;
@@ -356,14 +342,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('header-date').textContent =
     hoy.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
 
-  // Poblar operarios
-  const sel = document.getElementById('sel-operario');
-  Object.keys(OPERARIOS).sort().forEach(nombre => {
-    const opt = document.createElement('option');
-    opt.value = nombre;
-    opt.textContent = nombre;
-    sel.appendChild(opt);
-  });
+  
 
   // Cargar OTs desde Apps Script
   cargarOTs();
@@ -379,6 +358,20 @@ async function cargarOTs() {
       o['Estado de proyecto aprobado'] === 'En curso'
     );
     otsCargadas = ots.map(o => o['Nombre proyecto'] || '').filter(Boolean);
+    
+    if (data.operarios && Object.keys(data.operarios).length > 0) {
+      OPERARIOS = data.operarios;
+    } else {
+      mostrarWarn('No se encontró la hoja...');
+    }
+    const sel = document.getElementById('sel-operario');
+    sel.innerHTML = '<option value="">— Seleccioná tu nombre —</option>';
+    Object.keys(OPERARIOS).sort().forEach(nombre => {
+      const opt = document.createElement('option');
+      opt.value = nombre;
+      opt.textContent = nombre;
+      sel.appendChild(opt);
+    });
   } catch (e) {
     // Si falla la carga, usamos lista vacía y mostramos aviso
     otsCargadas = [];
